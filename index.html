@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Back Posture Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.2); }
+  </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center">
+  <h1 class="text-3xl font-bold mb-6 text-sky-400">Posture Daily Tracker</h1>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
+    <div class="glass p-8 rounded-3xl text-center">
+      <div class="text-sm text-slate-400 uppercase tracking-widest mb-2">Current Flex Value</div>
+      <div id="val" class="text-7xl font-black text-white">0</div>
+      <button id="btn-connect" class="mt-6 bg-sky-500 hover:bg-sky-400 px-8 py-3 rounded-xl font-bold transition-all w-full">
+        Connect Bluetooth
+      </button>
+    </div>
+
+    <div class="glass p-6 rounded-3xl">
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+
+  <div class="glass mt-8 p-6 rounded-3xl w-full max-w-5xl overflow-hidden">
+    <h2 class="text-xl font-bold mb-4">Daily History (Average Flex)</h2>
+    <div id="history-list" class="space-y-2">
+      </div>
+  </div>
+
+  <script>
+    let port, reader;
+    const valDisplay = document.getElementById('val');
+    const historyList = document.getElementById('history-list');
+    
+    // --- ระบบ Chart.js ---
+    const ctx = document.getElementById('dailyChart').getContext('2d');
+    let chartData = {
+      labels: [],
+      datasets: [{
+        label: 'Flex Intensity',
+        data: [],
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+        fill: true,
+        tension: 0.4
+      }]
+    };
+    const config = { type: 'line', data: chartData, options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' } } } } };
+    const myChart = new Chart(ctx, config);
+
+    // --- ระบบเก็บข้อมูลรายวัน ---
+    function updateHistory() {
+      const history = JSON.parse(localStorage.getItem('postureHistory') || '{}');
+      historyList.innerHTML = '';
+      Object.keys(history).reverse().slice(0, 7).forEach(date => {
+        const avg = (history[date].reduce((a,b) => a+b, 0) / history[date].length).toFixed(1);
+        historyList.innerHTML += `<div class="flex justify-between border-b border-slate-800 py-2"><span>${date}</span><span class="text-sky-400 font-bold">${avg} Flex Avg</span></div>`;
+      });
+    }
+    updateHistory();
+
+    function saveData(value) {
+      const today = new Date().toLocaleDateString();
+      const history = JSON.parse(localStorage.getItem('postureHistory') || '{}');
+      if (!history[today]) history[today] = [];
+      history[today].push(parseInt(value));
+      localStorage.setItem('postureHistory', JSON.stringify(history));
+    }
+
+    document.getElementById('btn-connect').onclick = async () => {
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+        document.getElementById('btn-connect').innerText = "Connected ✅";
+        readData();
+      } catch (err) { console.error(err); }
+    };
+
+    async function readData() {
+      const decoder = new TextDecoderStream();
+      port.readable.pipeTo(decoder.writable);
+      reader = decoder.readable.getReader();
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        let lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (let line of lines) {
+          let num = line.trim();
+          if(num && !isNaN(num)) {
+            valDisplay.innerText = num;
+            // อัปเดตกราฟ
+            if (chartData.labels.length > 20) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
+            chartData.labels.push(new Date().toLocaleTimeString());
+            chartData.datasets[0].data.push(num);
+            myChart.update('none');
+            // บันทึกลงความจำเครื่อง
+            saveData(num);
+            if (chartData.datasets[0].data.length % 10 === 0) updateHistory();
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

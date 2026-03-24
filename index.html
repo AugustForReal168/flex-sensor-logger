@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Posture Guard Pro v4.5</title>
+    <title>Posture Guard Pro v4.6</title>
     <style>
-        /* ดึงฟอนต์ Chakra Petch และ Share Tech Mono */
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Share+Tech+Mono&display=swap');
         
         :root {
-            --bg-60: #1B4332;       /* ม่วงในผัง: สีหลัก */
-            --sec-30: #EFE9AE;      /* น้ำเงินในผัง: สีรอง */
-            --accent-10: #FA8072;   /* แดงในผัง: สีเน้น */
-            --panel-alpha: rgba(27, 67, 50, 0.85); /* สีหลักแบบโปร่งแสง */
+            --bg-60: #1B4332;       /* ม่วง: สีหลัก */
+            --sec-30: #EFE9AE;      /* น้ำเงิน: สีรอง */
+            --accent-10: #FA8072;   /* แดง: สีเน้น */
+            --panel-alpha: rgba(27, 67, 50, 0.85); 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,12 +22,9 @@
             min-height: 100vh;
             padding: 20px;
 
-            /* ====================================================== */
-            /* 🔴 จุดใส่ LINK GIF ตรงนี้ครับ!!! 🔴 */
-            /* เอาลิงก์ที่ลงท้ายด้วย .gif มาวางแทนที่ในเครื่องหมาย '' ด้านล่างนี้ */
-            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-                              url('https://www.facebook.com/messenger_media/?attachment_id=1500795701480102&message_id=mid.%24gAARwFljuFgajUJW9FGdH0_8XKczp&thread_id=1249141190432262'); 
-            /* ====================================================== */
+            /* ใส่ลิงก์ GIF ที่คุณส่งมา พร้อมฟิล์มดำจางๆ เพื่อให้อ่านง่ายขึ้น */
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                              url('https://i.ibb.co/Q3jqC4s1/652787613-1500795708146768-3586729385062130144-n.gif'); 
 
             background-size: cover;
             background-position: center;
@@ -54,7 +50,7 @@
             border: 2px solid var(--sec-30); 
             border-radius: 15px; padding: 25px; 
             box-shadow: 10px 10px 0px rgba(0,0,0,0.3);
-            backdrop-filter: blur(10px); /* เอฟเฟกต์กระจกฝ้า */
+            backdrop-filter: blur(12px); /* เพิ่มความเบลอเพื่อให้เห็นพื้นหลังลางๆ แบบกระจกฝ้า */
         }
 
         .full-width { grid-column: 1 / -1; }
@@ -72,8 +68,6 @@
         
         #angle-display { font-size: 6rem; line-height: 1; }
         #daily-vibe-count { font-size: 5rem; }
-
-        .details { color: var(--sec-30); font-size: 0.95rem; margin-top: 5px; opacity: 0.8; }
 
         button { 
             background: rgba(250, 128, 114, 0.1); border: 2px solid var(--accent-10); 
@@ -96,23 +90,23 @@
 
 <div class="container">
     <header>
-        <h1>POSTURE GUARD <span style="font-size: 0.8rem; color: var(--sec-30);">v4.5</span></h1>
+        <h1>POSTURE GUARD <span style="font-size: 0.8rem; color: var(--sec-30);">v4.6</span></h1>
         <div id="status-text" style="color: var(--sec-30); font-weight: bold;">STATUS: STANDBY</div>
     </header>
 
-    <button id="connect-btn">⚡ CONNECT BLUETOOTH (9600 BAUD)</button>
+    <button id="connect-btn">⚡ CONNECT DEVICE</button>
 
     <div class="main-grid">
         <div class="panel">
             <div class="label">CURRENT TILT ANGLE</div>
             <div id="angle-display">0.0</div>
-            <div class="details">DEGREES (Y-AXIS)</div>
+            <div style="font-size: 0.9rem; opacity: 0.7;">DEGREES (Y-AXIS)</div>
         </div>
 
         <div class="panel">
             <div class="label">TOTAL ALERTS TODAY</div>
             <div id="daily-vibe-count">0</div>
-            <div id="date-info" class="details">Session: --/--/--</div>
+            <div id="date-info" style="font-size: 0.9rem; opacity: 0.7;">Session: --/--/--</div>
         </div>
 
         <div class="panel full-width">
@@ -122,12 +116,13 @@
 
         <div class="panel full-width">
             <div class="label">RAW DATA FEED</div>
-            <div id="log-feed">Waiting for Arduino...</div>
+            <div id="log-feed">Waiting for Arduino Data...</div>
         </div>
     </div>
 </div>
 
 <script>
+    // ส่วน Logic เดิมทั้งหมดที่บันทึกสถิติและรับค่า Serial
     let port, reader, buffer = "";
     const history = [];
     let dailyCount = parseInt(localStorage.getItem('posture_dailyCount')) || 0;

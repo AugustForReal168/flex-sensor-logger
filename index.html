@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Posture Monitor v3</title>
+<title>Posture Guard v3</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { background-color: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 2rem; }
-  #val { font-size: 5rem; margin: 2rem 0; }
+  body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 2rem; }
+  #val { font-size: 5rem; margin: 2rem 0; }
 </style>
 </head>
 <body>
 
 <h1>Posture Guard v3</h1>
-<button id="btn-connect">Connect Device</button>
+<button id="btn-connect">Connect Arduino</button>
 <div>Current Y-Angle:</div>
 <div id="val">0°</div>
 <canvas id="chart" height="200"></canvas>
@@ -22,69 +22,55 @@
 let port, reader;
 const valDisplay = document.getElementById('val');
 
-// --- Chart Setup ---
+// --- Chart setup ---
 const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      label: 'Angle Y',
-      data: [],
-      borderColor: '#38bdf8',
-      backgroundColor: 'rgba(56,189,248,0.2)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0
-    }]
-  },
-  options: {
-    scales: { y: { min: 0, max: 90 } },
-    plugins: { legend: { display: false } }
-  }
+  type: 'line',
+  data: { labels: [], datasets: [{ label:'Angle Y', data:[], borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.2)', fill:true, tension:0.3, pointRadius:0 }] },
+  options: { scales: { y:{min:0,max:90} }, plugins:{legend:{display:false}} }
 });
 
 // --- Connect USB Serial ---
 document.getElementById('btn-connect').onclick = async () => {
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate: 9600 });
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate: 115200 });
 
-  const decoder = new TextDecoderStream();
-  port.readable.pipeTo(decoder.writable);
-  reader = decoder.readable.getReader();
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  reader = decoder.readable.getReader();
 
-  readLoop();
+  readLoop();
 };
 
 async function readLoop() {
-  let buffer = "";
-  while(true){
-    const { value, done } = await reader.read();
-    if(done) break;
+  let buffer = "";
+  while(true){
+    const { value, done } = await reader.read();
+    if(done) break;
 
-    buffer += value;
-    let lines = buffer.split('\n');
-    buffer = lines.pop();
+    buffer += value;
+    let lines = buffer.split('\n');
+    buffer = lines.pop();
 
-    for(let line of lines){
-      let num = parseFloat(line.trim());
-      if(!isNaN(num)){
-        updateUI(num);
-      }
-    }
-  }
+    for(let line of lines){
+      let num = parseFloat(line.trim());
+      if(!isNaN(num)){
+        updateUI(num);
+      }
+    }
+  }
 }
 
 function updateUI(angle){
-  valDisplay.innerText = Math.round(angle) + "°";
+  valDisplay.innerText = Math.round(angle) + "°";
 
-  if(chart.data.labels.length > 40){
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
-  chart.data.labels.push("");
-  chart.data.datasets[0].data.push(angle);
-  chart.update();
+  if(chart.data.labels.length > 40){
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+  chart.data.labels.push("");
+  chart.data.datasets[0].data.push(angle);
+  chart.update();
 }
 </script>
 

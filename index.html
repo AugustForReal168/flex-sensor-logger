@@ -3,84 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Back Posture Tracker</title>
+  <title>Posture Monitor - MPU6050</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.2); }
+    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 24px; }
+    .status-ok { color: #10b981; }
+    .status-warn { color: #f43f5e; font-weight: bold; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
 </head>
-<body class="p-4 md:p-8 flex flex-col items-center">
-  <h1 class="text-3xl font-bold mb-6 text-sky-400">Posture Daily Tracker</h1>
+<body class="p-4 md:p-10 flex flex-col items-center min-h-screen">
   
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
-    <div class="glass p-8 rounded-3xl text-center">
-      <div class="text-sm text-slate-400 uppercase tracking-widest mb-2">Current Flex Value</div>
-      <div id="val" class="text-7xl font-black text-white">0</div>
-      <button id="btn-connect" class="mt-6 bg-sky-500 hover:bg-sky-400 px-8 py-3 rounded-xl font-bold transition-all w-full">
-        Connect Bluetooth
+  <div class="w-full max-w-6xl space-y-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-4xl font-black text-sky-400">Back Guard <span class="text-sm font-normal text-slate-500">v2.0 (MPU6050)</span></h1>
+      <button id="btn-connect" class="bg-sky-600 hover:bg-sky-500 px-6 py-2 rounded-full font-bold transition-all shadow-lg shadow-sky-900/20">
+        Connect Device
       </button>
     </div>
 
-    <div class="glass p-6 rounded-3xl">
-      <canvas id="dailyChart"></canvas>
-    </div>
-  </div>
-
-  <div class="glass mt-8 p-6 rounded-3xl w-full max-w-5xl overflow-hidden">
-    <h2 class="text-xl font-bold mb-4">Daily History (Average Flex)</h2>
-    <div id="history-list" class="space-y-2">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="glass p-10 flex flex-col items-center justify-center text-center">
+        <span class="text-slate-400 text-sm uppercase tracking-widest mb-4">Current Y-Angle</span>
+        <div id="val" class="text-8xl font-black mb-2">0°</div>
+        <div id="status-text" class="status-ok text-lg">Posture: Good</div>
       </div>
+
+      <div class="lg:col-span-2 glass p-6">
+        <canvas id="liveChart"></canvas>
+      </div>
+    </div>
+
+    <div class="glass p-8">
+      <h2 class="text-xl font-bold mb-6 flex items-center">
+        <span class="w-2 h-6 bg-sky-500 rounded-full mr-3"></span> Daily Progress
+      </h2>
+      <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        </div>
+    </div>
   </div>
 
   <script>
     let port, reader;
     const valDisplay = document.getElementById('val');
+    const statusText = document.getElementById('status-text');
     const historyList = document.getElementById('history-list');
-    
-    // --- ระบบ Chart.js ---
-    const ctx = document.getElementById('dailyChart').getContext('2d');
-    let chartData = {
-      labels: [],
-      datasets: [{
-        label: 'Flex Intensity',
-        data: [],
-        borderColor: '#38bdf8',
-        backgroundColor: 'rgba(56, 189, 248, 0.2)',
-        fill: true,
-        tension: 0.4
-      }]
-    };
-    const config = { type: 'line', data: chartData, options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' } } } } };
-    const myChart = new Chart(ctx, config);
 
-    // --- ระบบเก็บข้อมูลรายวัน ---
-    function updateHistory() {
-      const history = JSON.parse(localStorage.getItem('postureHistory') || '{}');
-      historyList.innerHTML = '';
-      Object.keys(history).reverse().slice(0, 7).forEach(date => {
-        const avg = (history[date].reduce((a,b) => a+b, 0) / history[date].length).toFixed(1);
-        historyList.innerHTML += `<div class="flex justify-between border-b border-slate-800 py-2"><span>${date}</span><span class="text-sky-400 font-bold">${avg} Flex Avg</span></div>`;
-      });
-    }
-    updateHistory();
+    // --- Chart Config ---
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Back Lean Angle (Y)',
+          data: [],
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 90, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+          x: { display: false }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
 
-    function saveData(value) {
-      const today = new Date().toLocaleDateString();
-      const history = JSON.parse(localStorage.getItem('postureHistory') || '{}');
-      if (!history[today]) history[today] = [];
-      history[today].push(parseInt(value));
-      localStorage.setItem('postureHistory', JSON.stringify(history));
-    }
-
+    // --- Bluetooth/Serial logic ---
     document.getElementById('btn-connect').onclick = async () => {
       try {
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 9600 });
-        document.getElementById('btn-connect').innerText = "Connected ✅";
+        document.getElementById('btn-connect').innerText = "✅ Connected";
         readData();
-      } catch (err) { console.error(err); }
+      } catch (err) { console.log("Connection Failed", err); }
     };
 
     async function readData() {
@@ -88,28 +94,74 @@
       port.readable.pipeTo(decoder.writable);
       reader = decoder.readable.getReader();
       let buffer = "";
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += value;
         let lines = buffer.split('\n');
         buffer = lines.pop();
+
         for (let line of lines) {
-          let num = line.trim();
-          if(num && !isNaN(num)) {
-            valDisplay.innerText = num;
-            // อัปเดตกราฟ
-            if (chartData.labels.length > 20) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
-            chartData.labels.push(new Date().toLocaleTimeString());
-            chartData.datasets[0].data.push(num);
-            myChart.update('none');
-            // บันทึกลงความจำเครื่อง
-            saveData(num);
-            if (chartData.datasets[0].data.length % 10 === 0) updateHistory();
+          let num = parseFloat(line.trim());
+          if (!isNaN(num)) {
+            updateUI(num);
+            saveToLocal(num);
           }
         }
       }
     }
+
+    function updateUI(angle) {
+      valDisplay.innerText = Math.round(angle) + "°";
+      
+      // อัปเดตกราฟ
+      if (chart.data.labels.length > 30) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.data.labels.push("");
+      chart.data.datasets[0].data.push(angle);
+      chart.update('none');
+
+      // เช็กท่าทาง
+      if (angle > 60) {
+        statusText.innerText = "Posture: Bad (Slumping!)";
+        statusText.className = "status-warn text-lg";
+      } else {
+        statusText.innerText = "Posture: Good";
+        statusText.className = "status-ok text-lg";
+      }
+    }
+
+    // บันทึกประวัติ
+    function saveToLocal(angle) {
+      const today = new Date().toLocaleDateString();
+      let history = JSON.parse(localStorage.getItem('postureData') || '{}');
+      if (!history[today]) history[today] = [];
+      
+      // บันทึกเฉพาะค่าที่ก้มเกิน 60 (นับเป็นจำนวนครั้ง)
+      if (angle > 60) {
+        history[today].push(1); 
+        localStorage.setItem('postureData', JSON.stringify(history));
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('postureData') || '{}');
+      historyList.innerHTML = '';
+      Object.keys(history).reverse().slice(0, 4).forEach(date => {
+        const count = history[date].length;
+        historyList.innerHTML += `
+          <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+            <div class="text-slate-400 text-xs">${date}</div>
+            <div class="text-2xl font-bold text-sky-400">${count} <span class="text-sm font-normal text-slate-500">Alerts</span></div>
+          </div>
+        `;
+      });
+    }
+    renderHistory();
   </script>
 </body>
 </html>

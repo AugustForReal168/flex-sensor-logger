@@ -3,76 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Posture Guard v3</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Posture Guard Cyberpunk v3</title>
 <style>
-  body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 2rem; }
-  #val { font-size: 5rem; margin: 2rem 0; }
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #05080f; --panel: #0a0f1e; --border: #1a2540; --accent: #00e5ff;
+    --accent2: #ff3d71; --warn: #ffaa00; --ok: #00e676; --text: #c8d8f0;
+    --dim: #3a4a6a; --glow: 0 0 20px rgba(0,229,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Chakra Petch', sans-serif; min-height: 100vh; }
+  
+  /* Grid background */
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  
+  .logo-icon { width: 36px; height: 36px; border: 2px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: var(--glow); }
+  h1 { font-size: 1.2rem; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; }
+
+  #status-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--dim); font-size: 0.7rem; font-family: 'Share Tech Mono'; }
+  #status-badge.connected { border-color: var(--ok); color: var(--ok); }
+  #status-badge.alert { border-color: var(--accent2); color: var(--accent2); animation: blink 0.5s infinite alternate; }
+  @keyframes blink { from { opacity: 1; } to { opacity: 0.5; } }
+
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
+  .panel-label { font-size: 0.65rem; color: var(--dim); margin-bottom: 12px; font-family: 'Share Tech Mono'; text-transform: uppercase; }
+
+  /* Angle Display */
+  .angle-panel { grid-column: 1 / -1; }
+  #angle-value { font-size: 5rem; font-weight: 700; font-family: 'Share Tech Mono'; color: var(--ok); text-shadow: 0 0 30px rgba(0,230,118,0.4); }
+  #angle-value.danger { color: var(--accent2); }
+  
+  .angle-bar { height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  #angle-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ok), var(--accent)); transition: width 0.15s; }
+
+  /* 3D Visual */
+  .device-3d { width: 60px; height: 100px; border: 2px solid var(--accent); border-radius: 8px; margin: 20px auto; transition: transform 0.1s; }
+  
+  /* Buttons */
+  button { font-family: 'Chakra Petch'; padding: 10px 20px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; margin-right: 10px; }
+  button:hover { background: rgba(0,229,255,0.1); box-shadow: var(--glow); }
+
+  canvas#graph { width: 100%; height: 150px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+  #log-box { height: 100px; overflow-y: auto; font-family: 'Share Tech Mono'; font-size: 0.7rem; color: var(--dim); background: #000; padding: 10px; border-radius: 8px; }
 </style>
 </head>
 <body>
 
-<h1>Posture Guard v3</h1>
-<button id="btn-connect">Connect Arduino</button>
-<div>Current Y-Angle:</div>
-<div id="val">0°</div>
-<canvas id="chart" height="200"></canvas>
+<div class="container">
+  <header>
+    <div><h1>Posture Guard v3</h1><div style="font-size:0.6rem; color:var(--dim)">SERIAL MONITOR MODE</div></div>
+    <div id="status-badge"><div id="status-text">DISCONNECTED</div></div>
+  </header>
+
+  <div style="margin-bottom: 20px;">
+    <button id="connect-btn" onclick="connectSerial()">⚡ CONNECT DEVICE</button>
+    <span style="font-size: 0.7rem; color: var(--dim)">Bluetooth (9600 baud) | RX:10 TX:12</span>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel angle-panel">
+      <div class="panel-label">// CURRENT Y-ANGLE</div>
+      <div style="display:flex; align-items:flex-end; gap:10px;">
+        <span id="angle-value">0.0</span><span style="font-size:1.5rem; color:var(--dim); padding-bottom:10px;">°</span>
+        <div style="flex:1">
+          <div class="angle-bar"><div id="angle-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">// TILT VISUAL</div>
+      <div class="device-3d" id="device-3d"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">// STATISTICS</div>
+      <div id="stats" style="font-family:'Share Tech Mono'; font-size:0.9rem;">
+        MAX: <span id="stat-max">--</span><br>
+        AVG: <span id="stat-avg">--</span><br>
+        SAMPLES: <span id="stat-count">0</span>
+      </div>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-label">// REAL-TIME GRAPH</div>
+      <canvas id="graph"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">// SYSTEM LOG</div>
+    <div id="log-box"></div>
+  </div>
+</div>
 
 <script>
-let port, reader;
-const valDisplay = document.getElementById('val');
+let port, reader, buffer = "";
+const history = [];
+let statMax = 0, statSum = 0, statCount = 0;
 
-// --- Chart setup ---
-const ctx = document.getElementById('chart').getContext('2d');
-const chart = new Chart(ctx, {
-  type: 'line',
-  data: { labels: [], datasets: [{ label:'Angle Y', data:[], borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.2)', fill:true, tension:0.3, pointRadius:0 }] },
-  options: { scales: { y:{min:0,max:90} }, plugins:{legend:{display:false}} }
-});
+async function connectSerial() {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    
+    document.getElementById('status-text').textContent = "CONNECTED";
+    document.getElementById('status-badge').className = "connected";
+    document.getElementById('connect-btn').disabled = true;
+    logEntry("Connected to device successfully", "ok");
 
-// --- Connect USB Serial ---
-document.getElementById('btn-connect').onclick = async () => {
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate: 9600 });
-
-  const decoder = new TextDecoderStream();
-  port.readable.pipeTo(decoder.writable);
-  reader = decoder.readable.getReader();
-
-  readLoop();
-};
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    reader = decoder.readable.getReader();
+    readLoop();
+  } catch (e) {
+    logEntry("Error: " + e.message, "err");
+  }
+}
 
 async function readLoop() {
-  let buffer = "";
-  while(true){
-    const { value, done } = await reader.read();
-    if(done) break;
-
-    buffer += value;
-    let lines = buffer.split('\n');
-    buffer = lines.pop();
-
-    for(let line of lines){
-      let num = parseFloat(line.trim());
-      if(!isNaN(num)){
-        updateUI(num);
-      }
-    }
-  }
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (let line of lines) {
+      let num = parseFloat(line.trim());
+      if (!isNaN(num)) processData(num);
+    }
+  }
 }
 
-function updateUI(angle){
-  valDisplay.innerText = Math.round(angle) + "°";
+function processData(angle) {
+  angle = Math.abs(angle);
+  history.push(angle);
+  if (history.length > 100) history.shift();
 
-  if(chart.data.labels.length > 40){
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
-  chart.data.labels.push("");
-  chart.data.datasets[0].data.push(angle);
-  chart.update();
+  // Update Stats
+  statMax = Math.max(statMax, angle);
+  statSum += angle;
+  statCount++;
+  
+  document.getElementById('angle-value').textContent = angle.toFixed(1);
+  document.getElementById('stat-max').textContent = statMax.toFixed(1) + "°";
+  document.getElementById('stat-avg').textContent = (statSum/statCount).toFixed(1) + "°";
+  document.getElementById('stat-count').textContent = statCount;
+
+  // UI Updates
+  const isAlert = angle > 45;
+  document.getElementById('angle-value').className = isAlert ? "danger" : "";
+  document.getElementById('angle-fill').style.width = Math.min(angle/90*100, 100) + "%";
+  document.getElementById('device-3d').style.transform = `rotate(${angle}deg)`;
+  document.getElementById('status-badge').className = isAlert ? "alert" : "connected";
+  
+  drawGraph();
+}
+
+function drawGraph() {
+  const canvas = document.getElementById('graph');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#00e5ff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const step = canvas.width / 100;
+  history.forEach((v, i) => {
+    const x = i * step;
+    const y = canvas.height - (v / 90 * canvas.height);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function logEntry(msg, type) {
+  const box = document.getElementById('log-box');
+  const div = document.createElement('div');
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
 }
 </script>
-
 </body>
 </html>

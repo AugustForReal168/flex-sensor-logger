@@ -1,198 +1,268 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Posture Guard Cyberpunk v3</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@300;400;600;700&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posture Guard Dashboard v3.2</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@400;700&display=swap');
+        
+        :root {
+            --bg: #05080f; --panel: #0a0f1e; --border: #1a2540; --accent: #00e5ff;
+            --accent2: #ff3d71; --ok: #00e676; --text: #c8d8f0; --dim: #3a4a6a;
+        }
 
-  :root {
-    --bg: #05080f; --panel: #0a0f1e; --border: #1a2540; --accent: #00e5ff;
-    --accent2: #ff3d71; --warn: #ffaa00; --ok: #00e676; --text: #c8d8f0;
-    --dim: #3a4a6a; --glow: 0 0 20px rgba(0,229,255,0.3);
-  }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Chakra Petch', sans-serif; 
+            min-height: 100vh; overflow-x: hidden;
+        }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Chakra Petch', sans-serif; min-height: 100vh; }
-  
-  /* Grid background */
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px; z-index: 0;
-  }
+        /* Cyberpunk Grid Background */
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), 
+                              linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+            background-size: 30px 30px; z-index: -1;
+        }
 
-  .container { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 20px; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-  
-  .logo-icon { width: 36px; height: 36px; border: 2px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: var(--glow); }
-  h1 { font-size: 1.2rem; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; }
+        .container { max-width: 900px; margin: 0 auto; padding: 25px; }
 
-  #status-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--dim); font-size: 0.7rem; font-family: 'Share Tech Mono'; }
-  #status-badge.connected { border-color: var(--ok); color: var(--ok); }
-  #status-badge.alert { border-color: var(--accent2); color: var(--accent2); animation: blink 0.5s infinite alternate; }
-  @keyframes blink { from { opacity: 1; } to { opacity: 0.5; } }
+        header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 25px; 
+        }
 
-  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
-  .panel-label { font-size: 0.65rem; color: var(--dim); margin-bottom: 12px; font-family: 'Share Tech Mono'; text-transform: uppercase; }
+        .status-badge { 
+            padding: 6px 15px; border-radius: 20px; border: 1px solid var(--dim); 
+            font-size: 0.8rem; font-family: 'Share Tech Mono'; transition: all 0.3s;
+        }
 
-  /* Angle Display */
-  .angle-panel { grid-column: 1 / -1; }
-  #angle-value { font-size: 5rem; font-weight: 700; font-family: 'Share Tech Mono'; color: var(--ok); text-shadow: 0 0 30px rgba(0,230,118,0.4); }
-  #angle-value.danger { color: var(--accent2); }
-  
-  .angle-bar { height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; margin-top: 10px; }
-  #angle-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ok), var(--accent)); transition: width 0.15s; }
+        .connected { border-color: var(--ok); color: var(--ok); box-shadow: 0 0 15px rgba(0,230,118,0.2); }
+        .danger-mode { border-color: var(--accent2); color: var(--accent2); animation: pulse 0.6s infinite alternate; }
 
-  /* 3D Visual */
-  .device-3d { width: 60px; height: 100px; border: 2px solid var(--accent); border-radius: 8px; margin: 20px auto; transition: transform 0.1s; }
-  
-  /* Buttons */
-  button { font-family: 'Chakra Petch'; padding: 10px 20px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; margin-right: 10px; }
-  button:hover { background: rgba(0,229,255,0.1); box-shadow: var(--glow); }
+        @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
 
-  canvas#graph { width: 100%; height: 150px; background: rgba(0,0,0,0.2); border-radius: 8px; }
-  #log-box { height: 100px; overflow-y: auto; font-family: 'Share Tech Mono'; font-size: 0.7rem; color: var(--dim); background: #000; padding: 10px; border-radius: 8px; }
-</style>
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
+        .full-width { grid-column: 1 / -1; }
+        .label { font-size: 0.7rem; color: var(--dim); text-transform: uppercase; margin-bottom: 10px; font-family: 'Share Tech Mono'; letter-spacing: 1px; }
+
+        /* Angle Display */
+        #angle-display { font-size: 7rem; font-weight: 700; font-family: 'Share Tech Mono'; line-height: 1; color: var(--ok); }
+        #angle-display.warn { color: var(--accent2); }
+
+        .progress-container { height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; margin-top: 15px; }
+        #progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s ease-out; }
+
+        /* 3D Box Visual */
+        .box-3d-wrap { height: 120px; display: flex; align-items: center; justify-content: center; }
+        .box-3d { 
+            width: 50px; height: 90px; border: 3px solid var(--accent); border-radius: 5px;
+            transition: transform 0.1s linear; position: relative;
+        }
+
+        /* Control & Log */
+        button { 
+            background: transparent; border: 1px solid var(--accent); color: var(--accent); 
+            padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Chakra Petch';
+            transition: all 0.2s;
+        }
+        button:hover { background: rgba(0,229,255,0.15); box-shadow: 0 0 20px rgba(0,229,255,0.3); }
+        button:disabled { border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
+
+        #log-window { 
+            height: 100px; overflow-y: auto; background: #000; border-radius: 8px; 
+            padding: 10px; font-family: 'Share Tech Mono'; font-size: 0.75rem; color: #4ade80; margin-top: 10px;
+        }
+
+        canvas { width: 100%; height: 140px; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <header>
-    <div><h1>Posture Guard v3</h1><div style="font-size:0.6rem; color:var(--dim)">SERIAL MONITOR MODE</div></div>
-    <div id="status-badge"><div id="status-text">DISCONNECTED</div></div>
-  </header>
-
-  <div style="margin-bottom: 20px;">
-    <button id="connect-btn" onclick="connectSerial()">⚡ CONNECT DEVICE</button>
-    <span style="font-size: 0.7rem; color: var(--dim)">Bluetooth (9600 baud) | RX:10 TX:12</span>
-  </div>
-
-  <div class="main-grid">
-    <div class="panel angle-panel">
-      <div class="panel-label">// CURRENT Y-ANGLE</div>
-      <div style="display:flex; align-items:flex-end; gap:10px;">
-        <span id="angle-value">0.0</span><span style="font-size:1.5rem; color:var(--dim); padding-bottom:10px;">°</span>
-        <div style="flex:1">
-          <div class="angle-bar"><div id="angle-fill"></div></div>
+    <header>
+        <div>
+            <h1 style="color:var(--accent); letter-spacing: 2px;">POSTURE GUARD <span style="font-size: 0.8rem; vertical-align: middle; opacity: 0.6;">v3.2</span></h1>
+            <p style="font-size:0.65rem; color:var(--dim)">HARDWARE CONNECTED VIA BLUETOOTH SERIAL (9600)</p>
         </div>
-      </div>
+        <div id="status" class="status-badge">STANDBY</div>
+    </header>
+
+    <div style="margin-bottom: 25px;">
+        <button id="connect-btn">⚡ เชื่อมต่อบลูทูธ (9600 BAUD)</button>
     </div>
 
-    <div class="panel">
-      <div class="panel-label">// TILT VISUAL</div>
-      <div class="device-3d" id="device-3d"></div>
-    </div>
+    <div class="main-grid">
+        <div class="panel full-width">
+            <div class="label">// Real-time Y-Axis Monitoring</div>
+            <div style="display:flex; align-items: baseline; gap:20px;">
+                <span id="angle-display">0.0</span><span style="font-size:2rem; color:var(--dim)">°</span>
+                <div style="flex-grow:1;">
+                    <div class="progress-container"><div id="progress-fill"></div></div>
+                </div>
+            </div>
+        </div>
 
-    <div class="panel">
-      <div class="panel-label">// STATISTICS</div>
-      <div id="stats" style="font-family:'Share Tech Mono'; font-size:0.9rem;">
-        MAX: <span id="stat-max">--</span><br>
-        AVG: <span id="stat-avg">--</span><br>
-        SAMPLES: <span id="stat-count">0</span>
-      </div>
-    </div>
+        <div class="panel">
+            <div class="label">// Device Orientation</div>
+            <div class="box-3d-wrap">
+                <div id="visual-box" class="box-3d"></div>
+            </div>
+        </div>
 
-    <div class="panel" style="grid-column: 1 / -1;">
-      <div class="panel-label">// REAL-TIME GRAPH</div>
-      <canvas id="graph"></canvas>
-    </div>
-  </div>
+        <div class="panel">
+            <div class="label">// Session Statistics</div>
+            <div style="font-family:'Share Tech Mono'; font-size: 1.1rem; line-height: 1.8;">
+                PEAK: <span id="peak-val" style="color:var(--accent2)">0.0°</span><br>
+                AVG : <span id="avg-val" style="color:var(--accent)">0.0°</span><br>
+                DATA: <span id="count-val">0</span> samples
+            </div>
+        </div>
 
-  <div class="panel">
-    <div class="panel-label">// SYSTEM LOG</div>
-    <div id="log-box"></div>
-  </div>
+        <div class="panel full-width">
+            <div class="label">// Tilt History (Last 100 Cycles)</div>
+            <canvas id="tilt-graph"></canvas>
+        </div>
+
+        <div class="panel full-width">
+            <div class="label">// Raw Data Feed</div>
+            <div id="log-window">รอการเชื่อมต่อจาก Arduino...</div>
+        </div>
+    </div>
 </div>
 
 <script>
-let port, reader, buffer = "";
-const history = [];
-let statMax = 0, statSum = 0, statCount = 0;
+    let port, reader, buffer = "";
+    const history = [];
+    let peak = 0, sum = 0, count = 0;
 
-async function connectSerial() {
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 9600 });
-    
-    document.getElementById('status-text').textContent = "CONNECTED";
-    document.getElementById('status-badge').className = "connected";
-    document.getElementById('connect-btn').disabled = true;
-    logEntry("Connected to device successfully", "ok");
+    const connectBtn = document.getElementById('connect-btn');
+    const logWindow = document.getElementById('log-window');
 
-    const decoder = new TextDecoderStream();
-    port.readable.pipeTo(decoder.writable);
-    reader = decoder.readable.getReader();
-    readLoop();
-  } catch (e) {
-    logEntry("Error: " + e.message, "err");
-  }
-}
-
-async function readLoop() {
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += value;
-    let lines = buffer.split('\n');
-    buffer = lines.pop();
-    for (let line of lines) {
-      let num = parseFloat(line.trim());
-      if (!isNaN(num)) processData(num);
+    function log(msg, isError = false) {
+        const time = new Date().toLocaleTimeString();
+        const style = isError ? 'color: #ff3d71;' : '';
+        logWindow.innerHTML += `<div style="${style}">[${time}] ${msg}</div>`;
+        logWindow.scrollTop = logWindow.scrollHeight;
     }
-  }
-}
 
-function processData(angle) {
-  angle = Math.abs(angle);
-  history.push(angle);
-  if (history.length > 100) history.shift();
+    connectBtn.onclick = async () => {
+        if (!navigator.serial) {
+            alert("เบราว์เซอร์นี้ไม่รองรับ Web Serial API (กรุณาใช้ Chrome บน PC)");
+            return;
+        }
 
-  // Update Stats
-  statMax = Math.max(statMax, angle);
-  statSum += angle;
-  statCount++;
-  
-  document.getElementById('angle-value').textContent = angle.toFixed(1);
-  document.getElementById('stat-max').textContent = statMax.toFixed(1) + "°";
-  document.getElementById('stat-avg').textContent = (statSum/statCount).toFixed(1) + "°";
-  document.getElementById('stat-count').textContent = statCount;
+        try {
+            log("กำลังขออนุญาตเข้าถึง Serial Port...");
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
+            
+            log("เชื่อมต่อสำเร็จ! กำลังรับข้อมูล...");
+            connectBtn.disabled = true;
+            connectBtn.textContent = "✓ DEVICE ACTIVE";
+            document.getElementById('status').textContent = "ONLINE";
+            document.getElementById('status').classList.add('connected');
 
-  // UI Updates
-  const isAlert = angle > 45;
-  document.getElementById('angle-value').className = isAlert ? "danger" : "";
-  document.getElementById('angle-fill').style.width = Math.min(angle/90*100, 100) + "%";
-  document.getElementById('device-3d').style.transform = `rotate(${angle}deg)`;
-  document.getElementById('status-badge').className = isAlert ? "alert" : "connected";
-  
-  drawGraph();
-}
+            const decoder = new TextDecoderStream();
+            port.readable.pipeTo(decoder.writable);
+            reader = decoder.readable.getReader();
+            
+            readLoop();
+        } catch (err) {
+            log("ERROR: " + err.message, true);
+        }
+    };
 
-function drawGraph() {
-  const canvas = document.getElementById('graph');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#00e5ff";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  const step = canvas.width / 100;
-  history.forEach((v, i) => {
-    const x = i * step;
-    const y = canvas.height - (v / 90 * canvas.height);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-}
+    async function readLoop() {
+        while (true) {
+            try {
+                const { value, done } = await reader.read();
+                if (done) {
+                    log("ตัดการเชื่อมต่อแล้ว");
+                    break;
+                }
+                
+                buffer += value;
+                let lines = buffer.split('\n');
+                buffer = lines.pop(); // เก็บส่วนที่ยังไม่จบบรรทัดไว้
+                
+                for (let line of lines) {
+                    let cleanData = line.trim();
+                    if (cleanData.length > 0) {
+                        let angle = parseFloat(cleanData);
+                        if (!isNaN(angle)) {
+                            updateDashboard(Math.abs(angle));
+                        }
+                    }
+                }
+            } catch (e) {
+                log("READ ERROR: " + e.message, true);
+                break;
+            }
+        }
+    }
 
-function logEntry(msg, type) {
-  const box = document.getElementById('log-box');
-  const div = document.createElement('div');
-  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
+    function updateDashboard(val) {
+        // Data Math
+        history.push(val);
+        if (history.length > 100) history.shift();
+        peak = Math.max(peak, val);
+        sum += val;
+        count++;
+
+        // UI Updates
+        const display = document.getElementById('angle-display');
+        const fill = document.getElementById('progress-fill');
+        const box = document.getElementById('visual-box');
+        const status = document.getElementById('status');
+
+        display.textContent = val.toFixed(1);
+        fill.style.width = Math.min((val / 90) * 100, 100) + "%";
+        box.style.transform = `rotate(${val}deg)`;
+
+        // Alert States
+        if (val > 45) {
+            display.classList.add('warn');
+            status.classList.add('danger-mode');
+            box.style.borderColor = "var(--accent2)";
+            box.style.boxShadow = "0 0 15px rgba(255, 61, 113, 0.4)";
+        } else {
+            display.classList.remove('warn');
+            status.classList.remove('danger-mode');
+            box.style.borderColor = "var(--accent)";
+            box.style.boxShadow = "none";
+        }
+
+        // Stats Update
+        document.getElementById('peak-val').textContent = peak.toFixed(1) + "°";
+        document.getElementById('avg-val').textContent = (sum / count).toFixed(1) + "°";
+        document.getElementById('count-val').textContent = count;
+
+        renderGraph();
+    }
+
+    function renderGraph() {
+        const c = document.getElementById('tilt-graph');
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+        
+        ctx.strokeStyle = "#00e5ff";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        
+        const xStep = c.width / 100;
+        history.forEach((v, i) => {
+            const x = i * xStep;
+            const y = c.height - (v / 90 * c.height);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
 </script>
 </body>
 </html>

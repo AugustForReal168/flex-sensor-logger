@@ -2,166 +2,163 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Posture Monitor - MPU6050</title>
+  <title>Back Guard PRO</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 24px; }
-    .status-ok { color: #10b981; }
-    .status-warn { color: #f43f5e; font-weight: bold; animation: pulse 1s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-  </style>
 </head>
-<body class="p-4 md:p-10 flex flex-col items-center min-h-screen">
-  
-  <div class="w-full max-w-6xl space-y-6">
-    <div class="flex justify-between items-center">
-      <h1 class="text-4xl font-black text-sky-400">Back Guard <span class="text-sm font-normal text-slate-500">v2.0 (MPU6050)</span></h1>
-      <button id="btn-connect" class="bg-sky-600 hover:bg-sky-500 px-6 py-2 rounded-full font-bold transition-all shadow-lg shadow-sky-900/20">
-        Connect Device
-      </button>
+
+<body class="bg-slate-900 text-white p-6">
+
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <div class="flex justify-between">
+    <h1 class="text-3xl font-bold text-sky-400">Back Guard PRO</h1>
+    <button id="btn-connect" class="bg-sky-600 px-4 py-2 rounded">Connect</button>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-slate-800 p-6 rounded-xl text-center">
+      <div id="angle" class="text-5xl">0°</div>
+      <div id="status">Good</div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="glass p-10 flex flex-col items-center justify-center text-center">
-        <span class="text-slate-400 text-sm uppercase tracking-widest mb-4">Current Y-Angle</span>
-        <div id="val" class="text-8xl font-black mb-2">0°</div>
-        <div id="status-text" class="status-ok text-lg">Posture: Good</div>
-      </div>
-
-      <div class="lg:col-span-2 glass p-6">
-        <canvas id="liveChart"></canvas>
-      </div>
+    <div class="bg-slate-800 p-6 rounded-xl text-center">
+      <div id="score" class="text-5xl">100%</div>
+      <div>Posture Score</div>
     </div>
 
-    <div class="glass p-8">
-      <h2 class="text-xl font-bold mb-6 flex items-center">
-        <span class="w-2 h-6 bg-sky-500 rounded-full mr-3"></span> Daily Progress
-      </h2>
-      <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        </div>
+    <div class="bg-slate-800 p-6 rounded-xl text-center">
+      <div id="badTime" class="text-5xl">0s</div>
+      <div>Bad Time</div>
     </div>
   </div>
 
-  <script>
-    let port, reader;
-    const valDisplay = document.getElementById('val');
-    const statusText = document.getElementById('status-text');
-    const historyList = document.getElementById('history-list');
+  <canvas id="chart"></canvas>
 
-    // --- Chart Config ---
-    const ctx = document.getElementById('liveChart').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'Back Lean Angle (Y)',
-          data: [],
-          borderColor: '#38bdf8',
-          backgroundColor: 'rgba(56, 189, 248, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 0
-        }]
+</div>
+
+<script>
+let port, reader;
+
+const angleEl = document.getElementById("angle");
+const statusEl = document.getElementById("status");
+const scoreEl = document.getElementById("score");
+const badTimeEl = document.getElementById("badTime");
+
+let goodCount = 0;
+let badCount = 0;
+let badTime = 0;
+
+const ctx = document.getElementById("chart").getContext("2d");
+
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: "Angle",
+        data: [],
+        borderColor: "#38bdf8",
+        tension: 0.3
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { min: 0, max: 90, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
-          x: { display: false }
-        },
-        plugins: { legend: { display: false } }
+      {
+        label: "Threshold",
+        data: [],
+        borderColor: "#f43f5e",
+        borderDash: [5,5]
       }
-    });
+    ]
+  },
+  options: {
+    scales: {
+      y: { min: 0, max: 90 }
+    }
+  }
+});
 
-    // --- Bluetooth/Serial logic ---
-    document.getElementById('btn-connect').onclick = async () => {
+document.getElementById("btn-connect").onclick = async () => {
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate: 9600 });
+
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  reader = decoder.readable.getReader();
+
+  readLoop();
+};
+
+async function readLoop() {
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += value;
+    let lines = buffer.split("\n");
+    buffer = lines.pop();
+
+    for (let line of lines) {
       try {
-        port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
-        document.getElementById('btn-connect').innerText = "✅ Connected";
-        readData();
-      } catch (err) { console.log("Connection Failed", err); }
-    };
-
-    async function readData() {
-      const decoder = new TextDecoderStream();
-      port.readable.pipeTo(decoder.writable);
-      reader = decoder.readable.getReader();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += value;
-        let lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        for (let line of lines) {
-          let num = parseFloat(line.trim());
-          if (!isNaN(num)) {
-            updateUI(num);
-            saveToLocal(num);
-          }
-        }
-      }
+        let data = JSON.parse(line.trim());
+        handleData(data.angle);
+      } catch {}
     }
+  }
+}
 
-    function updateUI(angle) {
-      valDisplay.innerText = Math.round(angle) + "°";
-      
-      // อัปเดตกราฟ
-      if (chart.data.labels.length > 30) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-      }
-      chart.data.labels.push("");
-      chart.data.datasets[0].data.push(angle);
-      chart.update('none');
+function handleData(angle) {
+  angle = Math.round(angle);
 
-      // เช็กท่าทาง
-      if (angle > 60) {
-        statusText.innerText = "Posture: Bad (Slumping!)";
-        statusText.className = "status-warn text-lg";
-      } else {
-        statusText.innerText = "Posture: Good";
-        statusText.className = "status-ok text-lg";
-      }
-    }
+  angleEl.innerText = angle + "°";
 
-    // บันทึกประวัติ
-    function saveToLocal(angle) {
-      const today = new Date().toLocaleDateString();
-      let history = JSON.parse(localStorage.getItem('postureData') || '{}');
-      if (!history[today]) history[today] = [];
-      
-      // บันทึกเฉพาะค่าที่ก้มเกิน 60 (นับเป็นจำนวนครั้ง)
-      if (angle > 60) {
-        history[today].push(1); 
-        localStorage.setItem('postureData', JSON.stringify(history));
-        renderHistory();
-      }
-    }
+  // --- threshold ---
+  let isBad = angle > 45;
 
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('postureData') || '{}');
-      historyList.innerHTML = '';
-      Object.keys(history).reverse().slice(0, 4).forEach(date => {
-        const count = history[date].length;
-        historyList.innerHTML += `
-          <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
-            <div class="text-slate-400 text-xs">${date}</div>
-            <div class="text-2xl font-bold text-sky-400">${count} <span class="text-sm font-normal text-slate-500">Alerts</span></div>
-          </div>
-        `;
-      });
-    }
-    renderHistory();
-  </script>
+  if (isBad) {
+    statusEl.innerText = "BAD 😡";
+    statusEl.style.color = "red";
+    badCount++;
+    badTime++;
+    beep();
+  } else {
+    statusEl.innerText = "GOOD 😎";
+    statusEl.style.color = "lime";
+    goodCount++;
+  }
+
+  // --- score ---
+  let total = goodCount + badCount;
+  let score = total ? Math.round((goodCount / total) * 100) : 100;
+  scoreEl.innerText = score + "%";
+
+  badTimeEl.innerText = badTime + "s";
+
+  // --- chart ---
+  if (chart.data.labels.length > 40) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+    chart.data.datasets[1].data.shift();
+  }
+
+  chart.data.labels.push("");
+  chart.data.datasets[0].data.push(angle);
+  chart.data.datasets[1].data.push(45);
+  chart.update();
+}
+
+// --- sound alert ---
+function beep() {
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = 800;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(() => osc.stop(), 100);
+}
+</script>
+
 </body>
 </html>

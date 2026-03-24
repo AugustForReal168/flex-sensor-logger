@@ -1,83 +1,51 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>Back Guard PRO</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Posture Monitor v3</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { background-color: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 2rem; }
+  #val { font-size: 5rem; margin: 2rem 0; }
+</style>
 </head>
+<body>
 
-<body class="bg-slate-900 text-white p-6">
-
-<div class="max-w-6xl mx-auto space-y-6">
-
-  <div class="flex justify-between">
-    <h1 class="text-3xl font-bold text-sky-400">Back Guard PRO</h1>
-    <button id="btn-connect" class="bg-sky-600 px-4 py-2 rounded">Connect</button>
-  </div>
-
-  <div class="grid grid-cols-3 gap-4">
-    <div class="bg-slate-800 p-6 rounded-xl text-center">
-      <div id="angle" class="text-5xl">0°</div>
-      <div id="status">Good</div>
-    </div>
-
-    <div class="bg-slate-800 p-6 rounded-xl text-center">
-      <div id="score" class="text-5xl">100%</div>
-      <div>Posture Score</div>
-    </div>
-
-    <div class="bg-slate-800 p-6 rounded-xl text-center">
-      <div id="badTime" class="text-5xl">0s</div>
-      <div>Bad Time</div>
-    </div>
-  </div>
-
-  <canvas id="chart"></canvas>
-
-</div>
+<h1>Posture Guard v3</h1>
+<button id="btn-connect">Connect Device</button>
+<div>Current Y-Angle:</div>
+<div id="val">0°</div>
+<canvas id="chart" height="200"></canvas>
 
 <script>
 let port, reader;
+const valDisplay = document.getElementById('val');
 
-const angleEl = document.getElementById("angle");
-const statusEl = document.getElementById("status");
-const scoreEl = document.getElementById("score");
-const badTimeEl = document.getElementById("badTime");
-
-let goodCount = 0;
-let badCount = 0;
-let badTime = 0;
-
-const ctx = document.getElementById("chart").getContext("2d");
-
+// --- Chart Setup ---
+const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
-  type: "line",
+  type: 'line',
   data: {
     labels: [],
-    datasets: [
-      {
-        label: "Angle",
-        data: [],
-        borderColor: "#38bdf8",
-        tension: 0.3
-      },
-      {
-        label: "Threshold",
-        data: [],
-        borderColor: "#f43f5e",
-        borderDash: [5,5]
-      }
-    ]
+    datasets: [{
+      label: 'Angle Y',
+      data: [],
+      borderColor: '#38bdf8',
+      backgroundColor: 'rgba(56,189,248,0.2)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0
+    }]
   },
   options: {
-    scales: {
-      y: { min: 0, max: 90 }
-    }
+    scales: { y: { min: 0, max: 90 } },
+    plugins: { legend: { display: false } }
   }
 });
 
-document.getElementById("btn-connect").onclick = async () => {
+// --- Connect USB Serial ---
+document.getElementById('btn-connect').onclick = async () => {
   port = await navigator.serial.requestPort();
   await port.open({ baudRate: 9600 });
 
@@ -90,73 +58,33 @@ document.getElementById("btn-connect").onclick = async () => {
 
 async function readLoop() {
   let buffer = "";
-
-  while (true) {
+  while(true){
     const { value, done } = await reader.read();
-    if (done) break;
+    if(done) break;
 
     buffer += value;
-    let lines = buffer.split("\n");
+    let lines = buffer.split('\n');
     buffer = lines.pop();
 
-    for (let line of lines) {
-      try {
-        let data = JSON.parse(line.trim());
-        handleData(data.angle);
-      } catch {}
+    for(let line of lines){
+      let num = parseFloat(line.trim());
+      if(!isNaN(num)){
+        updateUI(num);
+      }
     }
   }
 }
 
-function handleData(angle) {
-  angle = Math.round(angle);
+function updateUI(angle){
+  valDisplay.innerText = Math.round(angle) + "°";
 
-  angleEl.innerText = angle + "°";
-
-  // --- threshold ---
-  let isBad = angle > 45;
-
-  if (isBad) {
-    statusEl.innerText = "BAD 😡";
-    statusEl.style.color = "red";
-    badCount++;
-    badTime++;
-    beep();
-  } else {
-    statusEl.innerText = "GOOD 😎";
-    statusEl.style.color = "lime";
-    goodCount++;
-  }
-
-  // --- score ---
-  let total = goodCount + badCount;
-  let score = total ? Math.round((goodCount / total) * 100) : 100;
-  scoreEl.innerText = score + "%";
-
-  badTimeEl.innerText = badTime + "s";
-
-  // --- chart ---
-  if (chart.data.labels.length > 40) {
+  if(chart.data.labels.length > 40){
     chart.data.labels.shift();
     chart.data.datasets[0].data.shift();
-    chart.data.datasets[1].data.shift();
   }
-
   chart.data.labels.push("");
   chart.data.datasets[0].data.push(angle);
-  chart.data.datasets[1].data.push(45);
   chart.update();
-}
-
-// --- sound alert ---
-function beep() {
-  const ctx = new AudioContext();
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.value = 800;
-  osc.connect(ctx.destination);
-  osc.start();
-  setTimeout(() => osc.stop(), 100);
 }
 </script>
 

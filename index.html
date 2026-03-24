@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Posture Guard Pro v4.7 - Cyberpunk Motion</title>
+    <title>Posture Guard Pro v4.6</title>
     <style>
-        /* ดึงฟอนต์จาก Google Fonts */
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Share+Tech+Mono&display=swap');
         
         :root {
-            --bg-60: #1B4332;       /* สีหลัก (ม่วงในผัง) */
-            --sec-30: #EFE9AE;      /* สีรอง (น้ำเงินในผัง) */
-            --accent-10: #FA8072;   /* สีเน้น (แดงในผัง) */
-            --panel-alpha: rgba(27, 67, 50, 0.75); /* สีหลักแบบโปร่งแสง */
+            --bg-60: #1B4332;       /* ม่วง: สีหลัก */
+            --sec-30: #EFE9AE;      /* น้ำเงิน: สีรอง */
+            --accent-10: #FA8072;   /* แดง: สีเน้น */
+            --panel-alpha: rgba(27, 67, 50, 0.85); 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,30 +21,27 @@
             color: var(--sec-30); 
             min-height: 100vh;
             padding: 20px;
-            overflow-x: hidden;
 
-            /* --- ส่วนของพื้นหลัง GIF (Direct Link) --- */
+            /* ใส่ลิงก์ GIF ที่คุณส่งมา พร้อมฟิล์มดำจางๆ เพื่อให้อ่านง่ายขึ้น */
             background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
-                              url('https://i.ibb.co/6y40F2r1/652787613-1500795708146768-3586729385062130144-n.gif'); 
-            
+                  url('https://i.ibb.co/Q3jqC4s1/652787613-1500795708146768-3586729385062130144-n.gif');
+
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
 
-        .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+        .container { max-width: 900px; margin: 0 auto; position: relative; }
 
         header { 
             display: flex; justify-content: space-between; align-items: center; 
             border-bottom: 2px solid var(--sec-30); padding-bottom: 15px; margin-bottom: 25px; 
             background: var(--panel-alpha); padding: 20px; border-radius: 12px;
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
         }
 
-        h1 { color: var(--accent-10); font-size: 1.8rem; letter-spacing: 2px; font-weight: 700; }
+        h1 { color: var(--accent-10); font-size: 1.8rem; letter-spacing: 2px; }
 
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
@@ -54,95 +50,79 @@
             border: 2px solid var(--sec-30); 
             border-radius: 15px; padding: 25px; 
             box-shadow: 10px 10px 0px rgba(0,0,0,0.3);
-            backdrop-filter: blur(15px); /* ทำให้พื้นหลังเบลอเห็น GIF ลางๆ */
-            -webkit-backdrop-filter: blur(15px);
-            transition: transform 0.3s;
+            backdrop-filter: blur(12px); /* เพิ่มความเบลอเพื่อให้เห็นพื้นหลังลางๆ แบบกระจกฝ้า */
         }
-        .panel:hover { transform: translateY(-5px); }
 
         .full-width { grid-column: 1 / -1; }
 
         .label { 
             font-size: 0.85rem; font-weight: bold; color: var(--sec-30); 
             margin-bottom: 10px; border-left: 4px solid var(--accent-10); padding-left: 10px;
-            text-transform: uppercase; letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         #angle-display, #daily-vibe-count { 
             font-family: 'Share Tech Mono', monospace; 
             color: var(--accent-10); font-weight: bold;
-            text-shadow: 0 0 15px rgba(250, 128, 114, 0.4);
         }
         
         #angle-display { font-size: 6rem; line-height: 1; }
         #daily-vibe-count { font-size: 5rem; }
 
-        .details { color: var(--sec-30); font-size: 0.95rem; margin-top: 5px; opacity: 0.8; }
-
-        /* ปุ่มกดดีไซน์ล้ำๆ */
         button { 
             background: rgba(250, 128, 114, 0.1); border: 2px solid var(--accent-10); 
-            color: var(--accent-10); padding: 18px; border-radius: 8px;
+            color: var(--accent-10); padding: 15px; border-radius: 8px;
             cursor: pointer; font-family: 'Chakra Petch'; font-weight: bold;
-            transition: 0.4s; width: 100%; margin-bottom: 25px; font-size: 1.2rem;
-            text-transform: uppercase; letter-spacing: 2px;
+            transition: 0.3s; width: 100%; margin-bottom: 20px; font-size: 1.1rem;
         }
-        button:hover { 
-            background: var(--accent-10); 
-            color: #1B4332; 
-            box-shadow: 0 0 30px var(--accent-10);
-            transform: scale(1.02);
-        }
+        button:hover { background: var(--accent-10); color: var(--bg-60); box-shadow: 0 0 20px var(--accent-10); }
 
         #log-feed { 
-            background: rgba(0,0,0,0.5); border: 1px solid var(--sec-30);
-            height: 120px; overflow-y: auto; padding: 15px;
-            font-family: 'Share Tech Mono'; font-size: 0.8rem; color: var(--sec-30);
-            border-radius: 8px;
+            background: rgba(0,0,0,0.4); border: 1px solid var(--sec-30);
+            height: 100px; overflow-y: auto; padding: 10px;
+            font-family: 'Share Tech Mono'; font-size: 0.75rem; color: var(--sec-30);
         }
 
-        canvas { width: 100%; height: 160px; margin-top: 10px; }
+        canvas { width: 100%; height: 150px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <div>
-            <h1>POSTURE GUARD <span style="font-size: 0.8rem; color: var(--sec-30); opacity: 0.6;">SYSTEM v4.7</span></h1>
-            <p style="font-size: 0.7rem; color: var(--sec-30);">HARDWARE STATUS: <span id="hw-stat">DISCONNECTED</span></p>
-        </div>
-        <div id="status-text" style="color: var(--sec-30); font-weight: bold; border: 1px solid var(--sec-30); padding: 5px 15px; border-radius: 20px;">STANDBY</div>
+        <h1>POSTURE GUARD <span style="font-size: 0.8rem; color: var(--sec-30);">v4.6</span></h1>
+        <div id="status-text" style="color: var(--sec-30); font-weight: bold;">STATUS: STANDBY</div>
     </header>
 
-    <button id="connect-btn">⚡ INITIALIZE BLUETOOTH CONNECTION</button>
+    <button id="connect-btn">⚡ CONNECT DEVICE</button>
 
     <div class="main-grid">
         <div class="panel">
             <div class="label">CURRENT TILT ANGLE</div>
             <div id="angle-display">0.0</div>
-            <div class="details">REAL-TIME Y-AXIS DATA</div>
+            <div style="font-size: 0.9rem; opacity: 0.7;">DEGREES (Y-AXIS)</div>
         </div>
 
         <div class="panel">
-            <div class="label">ALERTS REGISTERED TODAY</div>
+            <div class="label">TOTAL ALERTS TODAY</div>
             <div id="daily-vibe-count">0</div>
-            <div id="date-info" class="details">SESSION: --/--/--</div>
+            <div id="date-info" style="font-size: 0.9rem; opacity: 0.7;">Session: --/--/--</div>
         </div>
 
         <div class="panel full-width">
-            <div class="label">POSTURE OSCILLATION GRAPH</div>
+            <div class="label">MOVEMENT HISTORY</div>
             <canvas id="tilt-graph"></canvas>
         </div>
 
         <div class="panel full-width">
-            <div class="label">SYSTEM RAW DATA LOG</div>
-            <div id="log-feed">System ready. Waiting for user input...</div>
+            <div class="label">RAW DATA FEED</div>
+            <div id="log-feed">Waiting for Arduino Data...</div>
         </div>
     </div>
 </div>
 
 <script>
+    // ส่วน Logic เดิมทั้งหมดที่บันทึกสถิติและรับค่า Serial
     let port, reader, buffer = "";
     const history = [];
     let dailyCount = parseInt(localStorage.getItem('posture_dailyCount')) || 0;
@@ -161,7 +141,7 @@
             localStorage.setItem('posture_lastDate', today);
         }
         document.getElementById('daily-vibe-count').textContent = dailyCount;
-        document.getElementById('date-info').textContent = "SESSION: " + today;
+        document.getElementById('date-info').textContent = "Current Session: " + today;
     }
     checkNewDay();
 
@@ -170,12 +150,10 @@
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 9600 });
             connectBtn.style.display = 'none';
-            document.getElementById('status-text').textContent = "ONLINE";
-            document.getElementById('status-text').style.borderColor = "#FA8072";
+            document.getElementById('status-text').textContent = "STATUS: ONLINE";
             document.getElementById('status-text').style.color = "#FA8072";
-            document.getElementById('hw-stat').textContent = "CONNECTED (PORT 9600)";
             readLoop();
-        } catch (e) { logFeed.innerHTML += `<div style="color:var(--accent-10)">[ERROR]: ${e.message}</div>`; }
+        } catch (e) { logFeed.innerHTML += `<div>Error: ${e.message}</div>`; }
     };
 
     async function readLoop() {
@@ -197,19 +175,14 @@
 
     function updateUI(angle) {
         document.getElementById('angle-display').textContent = angle.toFixed(1);
-        
-        // กฎการนับครั้งที่สั่น (สั่นเมื่อเกิน 45 องศา)
         if (angle >= 45 && !isVibrating) {
             dailyCount++;
             localStorage.setItem('posture_dailyCount', dailyCount);
             document.getElementById('daily-vibe-count').textContent = dailyCount;
             isVibrating = true;
-            document.getElementById('angle-display').style.color = "var(--accent-10)";
         } else if (angle < 45) {
             isVibrating = false;
-            document.getElementById('angle-display').style.color = "var(--accent-10)"; 
         }
-
         history.push(angle);
         if (history.length > 100) history.shift();
         drawGraph();
@@ -220,23 +193,17 @@
         const ctx = c.getContext('2d');
         c.width = c.parentElement.clientWidth - 50;
         ctx.clearRect(0, 0, c.width, c.height);
-        
-        // วาดเส้นตารางจางๆ
-        ctx.strokeStyle = "rgba(239, 233, 174, 0.1)";
-        ctx.lineWidth = 1;
-        for(let i=0; i<5; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, (c.height/4)*i);
-            ctx.lineTo(c.width, (c.height/4)*i);
-            ctx.stroke();
-        }
-
-        // วาดเส้นข้อมูล
         ctx.strokeStyle = "#EFE9AE"; 
         ctx.lineWidth = 3;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "#EFE9AE";
         ctx.beginPath();
         let step = c.width / 100;
         history.forEach((v, i) => {
-            let x = i
+            let x = i * step;
+            let y = c.height - (v / 90 * c.height);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
+</script>
+</body>
+</html>

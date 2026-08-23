@@ -142,8 +142,7 @@
 </div>
 
 <script>
-    let bluetoothDevice, bluetoothServer, bluetoothCharacteristic;
-    let buffer = "";
+    let port, reader, buffer = "";
     const history = [];
     let dailyCount = parseInt(localStorage.getItem('posture_dailyCount')) || 0;
     let isVibrating = false;
@@ -164,32 +163,55 @@
     }
     checkNewDay();
 
-    // เชื่อมต่อผ่าน Web Bluetooth API (สำหรับ HC-05 Serial Port Service)
+    // เชื่อมต่อผ่าน Web Serial API สำหรับ HC-05 COM Port (เช่น COM6)
     connectBtn.onclick = async () => {
         try {
-            logFeed.innerHTML += `<div>[SYSTEM]: Requesting Bluetooth Device...</div>`;
+            logFeed.innerHTML += `<div>[SYSTEM]: Requesting Serial Port...</div>`;
             
-            // ค้นหา Bluetooth SPP / Serial Profile
-            bluetoothDevice = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] // standard SPP UUID
-            });
-
-            logFeed.innerHTML += `<div>[SYSTEM]: Connecting to ${bluetoothDevice.name}...</div>`;
-            bluetoothServer = await bluetoothDevice.gatt.connect();
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
 
             connectBtn.style.display = 'none';
             document.getElementById('status-text').textContent = "ONLINE";
             document.getElementById('status-text').style.borderColor = "#FA8072";
             document.getElementById('status-text').style.color = "#FA8072";
-            document.getElementById('hw-stat').textContent = "CONNECTED (" + bluetoothDevice.name + ")";
-            logFeed.innerHTML += `<div style="color:var(--sec-30)">[SUCCESS]: Bluetooth Connected Successfully!</div>`;
+            document.getElementById('hw-stat').textContent = "CONNECTED (COM PORT)";
+            logFeed.innerHTML += `<div style="color:var(--sec-30)">[SUCCESS]: Serial Port Opened Successfully!</div>`;
 
+            readLoop();
         } catch (e) { 
             logFeed.innerHTML += `<div style="color:var(--accent-10)">[ERROR]: ${e.message}</div>`; 
-            logFeed.innerHTML += `<div style="color:var(--sec-30)">[TIP]: Make sure HC-05 is paired in Windows Bluetooth settings first.</div>`;
         }
     };
+
+    async function readLoop() {
+        const textDecoder = new TextDecoderStream();
+        const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+        reader = textDecoder.readable.getReader();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+                buffer += value;
+                let lines = buffer.split('\n');
+                buffer = lines.pop(); // เก็บเศษบรรทัดที่ยังไม่สมบูรณ์
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line) {
+                        logFeed.innerHTML += `<div>> ${line}</div>`;
+                        logFeed.scrollTop = logFeed.scrollHeight;
+                        
+                        let angle = parseFloat(line);
+                        if (!isNaN(angle)) {
+                            updateUI(angle);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     function updateUI(angle) {
         document.getElementById('angle-display').textContent = angle.toFixed(1);
